@@ -23,7 +23,28 @@ git remote add origin https://github.com/<你的用户名>/linji.git
 git push -u origin master
 ```
 
-## 第 2 步：购买阿里云 ECS（代金券抵扣）
+## 方案 B：GitHub 学生包免费服务器（DigitalOcean，推荐先试）
+
+学生包含 **DigitalOcean $200 额度（60 天有效）**——考试演示完全够，零花费。同款脚本直接可用：
+
+1. GitHub Student Pack 页面 → DigitalOcean → 激活，获得 $200 额度
+2. DigitalOcean 控制台 → Create → Droplets：
+   - **Region**：Singapore（国内访问相对最好的节点）
+   - **Image**：Ubuntu 24.04 LTS
+   - **Size**：Basic / Regular / 2 vCPU + 2GB（约 $12/月，$200 额度足够）
+   - **Authentication**：SSH Key（页面引导你生成本机密钥并粘贴公钥）
+3. 控制台 **Networking → Firewalls**：放行 22 和 3000 端口（或先跳过，默认全通）
+4. SSH 登录后与阿里云完全相同：
+
+```bash
+sudo apt-get update && sudo apt-get install -y git
+git clone https://github.com/<你的用户名>/linji.git && cd linji
+bash scripts/setup-server.sh
+```
+
+访问 `http://<Droplet公网IP>:3000`。国内直连 IP 通常可达；如遇慢，可给学生包里免费领的 `.me` 域名加 Cloudflare 解析改善。
+
+## 方案 A：阿里云 ECS（代金券抵扣，国内访问最快）
 
 控制台 → 云服务器 ECS → 创建实例，按这个配置选（学生性价比最高）：
 
