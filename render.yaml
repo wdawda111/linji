@@ -1,0 +1,26 @@
+# Render.com 一键部署蓝图
+# 使用：render.com 控制台 → New → Blueprint → 选择本仓库 → 自动按此文件部署
+services:
+  - type: web
+    name: linji
+    runtime: node
+    plan: free
+    region: singapore
+    # Node 版本
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # 会话签名密钥：Render 自动生成随机值
+      - key: AUTH_SECRET
+        generateValue: true
+      # LLM（可选）：填 DeepSeek Key 即可让线上 AI 走真模型
+      - key: LLM_BASE_URL
+        value: "https://api.deepseek.com"
+      - key: LLM_API_KEY
+        sync: false # 部署时在面板手动填入你的 DeepSeek Key
+      - key: LLM_MODEL
+        value: "deepseek-chat"
+    buildCommand: npm ci --include=dev && npx prisma generate && npm run build
+    # 启动前自动建表；首次启动自动灌演示数据（种子幂等，已有数据不重复）
+    startCommand: npx prisma db push && npm run db:seed && npm run start
+    healthCheckPath: /
