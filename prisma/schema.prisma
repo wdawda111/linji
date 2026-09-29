@@ -1,0 +1,129 @@
+// 小区闲置物品流转工具「邻集」数据库模型
+// 设计思路：熟人社区，无信用体系；交易在线下完成，线上只保留
+// 「发布 -> 被看到 -> 想要 -> 留言 -> 标记送出」的轻记录。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Space {
+  id         String   @id @default(cuid())
+  name       String
+  slug       String   @unique
+  type       String   @default("社区")
+  inviteCode String?  @unique
+  createdAt  DateTime @default(now())
+  users      User[]
+}
+
+model SpaceApplication {
+  id         String    @id @default(cuid())
+  name       String
+  type       String
+  contact    String
+  reason     String
+  status     String    @default("PENDING")
+  reviewedBy String?
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([status, createdAt])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique // 登录账号
+  passwordHash String? // bcrypt；演示种子用户也有密码
+  name         String // 昵称
+  avatar       String // emoji 头像
+  building     String // 楼栋，如 "3 号楼 2 单元"
+  bio          String?
+  role         String   @default("MEMBER")
+  createdAt    DateTime @default(now())
+
+  spaceId String?
+  space   Space?  @relation(fields: [spaceId], references: [id])
+
+  items           Item[]    @relation("PublishedItems")
+  receivedItems   Item[]    @relation("ReceivedItems")
+  wants           Want[]
+  comments        Comment[]
+  repliedComments Comment[] @relation("ReplyTargets")
+
+  @@index([spaceId])
+}
+
+model Item {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  // 期望交易方式：FREE=免费送 | ANY=随便给 | PRICED=标价
+  tradeMode   String
+  price       Float? // tradeMode = PRICED 时的价格
+  // 物品成色：NEW=全新 | LIKE_NEW=几乎全新 | GOOD=轻微使用痕迹 | USED=明显使用痕迹
+  condition   String
+  // 图片 URL 数组（JSON 字符串），可以是上传文件或内置占位图
+  images      String    @default("[]")
+  // 状态：ACTIVE=在售 | GIVEN=已送出（归档但保留记录）
+  status      String    @default("ACTIVE")
+  // 标记送出时的归属（可选，从"想要"的人里选）
+  givenToId   String?
+  givenAt     DateTime?
+
+  publisherId String
+  publisher   User   @relation("PublishedItems", fields: [publisherId], references: [id])
+  givenTo     User?  @relation("ReceivedItems", fields: [givenToId], references: [id])
+
+  wants    Want[]
+  comments Comment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 看板高频查询
+  @@index([status, createdAt])
+  @@index([publisherId])
+}
+
+// "想要"意向：一人对一件物品最多一次
+model Want {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([itemId, userId])
+  @@index([itemId])
+}
+
+// 围绕物品的公开留言问答：顶层留言 + 楼层内回复（回复挂到楼层根，避免无限嵌套）
+model Comment {
+  id          String    @id @default(cuid())
+  content     String
+  createdAt   DateTime  @default(now())
+  retractedAt DateTime?
+
+  // 楼层结构：parentId 为空 = 顶层留言；否则指向所在楼层的根留言
+  parentId      String?
+  parent        Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       Comment[] @relation("CommentThread")
+  // 楼层内正在回复谁（用于展示"回复 @某人"）
+  replyToUserId String?
+  replyToUser   User?     @relation("ReplyTargets", fields: [replyToUserId], references: [id])
+
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([itemId])
+  @@index([parentId])
+}

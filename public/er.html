@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>邻集 ER 图</title>
+<style>
+  body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; background: #fff; margin: 24px; }
+  h1 { font-size: 20px; color: #059669; }
+</style>
+</head>
+<body>
+<h1>邻集 · 数据库 ER 图（Prisma + SQLite）</h1>
+<pre class="mermaid">
+erDiagram
+    USER ||--o{ ITEM : "发布 publisherId"
+    USER ||--o{ ITEM : "接收 givenToId"
+    USER ||--o{ WANT : "表达意向"
+    USER ||--o{ COMMENT : "留言"
+    ITEM ||--o{ WANT : "被想要"
+    ITEM ||--o{ COMMENT : "留言板"
+
+    USER {
+        string id PK
+        string name "昵称"
+        string avatar "emoji头像"
+        string building "楼栋"
+        string bio "简介"
+        datetime createdAt
+    }
+    ITEM {
+        string id PK
+        string title "名称"
+        string description "描述"
+        string tradeMode "FREE|ANY|PRICED"
+        float price "标价"
+        string condition "成色"
+        string images "图片JSON"
+        string status "ACTIVE|GIVEN"
+        string givenToId FK "送给谁"
+        datetime givenAt "送出时间"
+        string publisherId FK "发布者"
+        datetime createdAt "新鲜度依据"
+    }
+    WANT {
+        string id PK
+        string itemId FK
+        string userId FK
+        datetime createdAt
+    }
+    COMMENT {
+        string id PK
+        string itemId FK
+        string userId FK
+        string content "内容"
+        datetime createdAt
+    }
+</pre>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral", er: { useMaxWidth: true } });
+  window.__mermaidReady = true;
+</script>
+</body>
+</html>
